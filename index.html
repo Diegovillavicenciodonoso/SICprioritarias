@@ -48,6 +48,8 @@
     padding:8px 16px;border-radius:8px;font-weight:600;font-size:13.5px;cursor:grab}
   .bm.off{background:#c4b3d0;pointer-events:none;cursor:default}
   .bm-nota{font-size:11.5px;color:var(--gris);margin-top:8px}
+  .sidra{margin-top:18px;margin-bottom:0}
+  .url-edit summary{font-size:11.5px;color:var(--gris);cursor:pointer;margin-top:6px}
 
   .paciente{border:1px solid var(--linea);border-radius:9px;padding:14px;margin-bottom:12px;
     position:relative;background:#fbfbfd}
@@ -65,6 +67,10 @@
   .btn-txt{background:#eef0f5;color:var(--tinta)}
   .btn-txt:hover{background:#e4e7ee}
   .aviso{font-size:12.5px;color:var(--ok);font-weight:600;min-height:18px;margin-top:8px}
+  .mini{background:#efe7f4;border:1px solid #d8c8e4;color:var(--purpura);font-size:11px;
+    font-weight:600;padding:2px 8px;border-radius:6px;cursor:pointer;margin-left:8px}
+  .mini:hover{background:#e6d8ef}
+  #destinatarios{font-size:12px;min-height:64px;background:#fbfbfd;color:#333;line-height:1.5}
 
   .previa{background:#fff;border:1px solid var(--linea);border-radius:6px;padding:22px;
     font-family:Calibri,"Segoe UI",Arial,sans-serif;font-size:15px;color:#222}
@@ -92,18 +98,6 @@
   <div class="panel">
     <h2>1 · Cargar interconsulta</h2>
 
-    <div class="sidra">
-      <h3>Captura directa desde SIDRA (bookmarklet)</h3>
-      <p>Pega abajo la URL donde publicaste esta app; luego arrastra el botón a tu barra de
-      marcadores. Con el SIC abierto en SIDRA, haz clic en ese marcador y el PDF se cargará aquí solo.</p>
-      <div class="campo">
-        <label for="appurl">URL de esta app (GitHub Pages)</label>
-        <input id="appurl" placeholder="https://tu-usuario.github.io/derivacion-local.html">
-      </div>
-      <a class="bm off" id="bm" href="#" draggable="true">⬇ Capturar SIC → arrástrame</a>
-      <div class="bm-nota">El PDF viaja por el fragmento <b>#</b> de la URL: nunca se envía a ningún servidor.</div>
-    </div>
-
     <div class="drop" id="drop">
       <b>o arrastra aquí el PDF del SIC</b>
       <p>haz clic para elegirlo · puedes soltar varios a la vez</p>
@@ -119,11 +113,36 @@
     <div id="pacientes"></div>
     <button class="btn btn-sec" id="agregar">+ Agregar paciente manual</button>
 
+    <h2 style="margin-top:18px">3 · Envío</h2>
+    <div class="campo">
+      <label>Destinatarios <button type="button" class="mini" id="copyDest">copiar</button></label>
+      <textarea id="destinatarios" readonly>Comle HFresia &lt;comle.hfresia@gmail.com&gt;, Cupos Prioridad HPM &lt;cuposprioridadhpm@ssdr.gob.cl&gt;, Carolina Vallejos Ampuero &lt;jefesomehfresia@ssdr.gob.cl&gt;, Prioridad Red HPM &lt;prioridadredhpm@ssdr.gob.cl&gt;</textarea>
+    </div>
+    <div class="campo">
+      <label>Asunto <button type="button" class="mini" id="copyAsunto">copiar</button></label>
+      <input id="asunto">
+    </div>
+
     <div class="acciones">
-      <button class="btn btn-pri" id="copiar">Copiar correo con formato</button>
-      <button class="btn btn-txt" id="copiarTxt">Copiar solo texto</button>
+      <button class="btn btn-pri" id="gmail">Copiar correo y abrir Gmail</button>
+      <button class="btn btn-txt" id="copiar">Copiar solo el correo</button>
+      <button class="btn btn-txt" id="copiarTxt">Solo texto</button>
     </div>
     <div class="aviso" id="aviso"></div>
+
+    <div class="sidra">
+      <h3>Configurar captura desde SIDRA · una sola vez</h3>
+      <p>Arrastra el botón de abajo a tu barra de marcadores. Con el SIC abierto en SIDRA, haz clic en ese marcador y el PDF se cargará aquí solo.</p>
+      <a class="bm off" id="bm" href="#" draggable="true">⬇ Capturar SIC → arrástrame</a>
+      <div class="bm-nota">El PDF viaja por el fragmento <b>#</b> de la URL: nunca se envía a ningún servidor.</div>
+      <details class="url-edit">
+        <summary>Cambiar URL de la app</summary>
+        <div class="campo" style="margin-top:8px">
+          <label for="appurl">URL de esta app (GitHub Pages)</label>
+          <input id="appurl" value="https://diegovillavicenciodonoso.github.io/SICprioritarias/">
+        </div>
+      </details>
+    </div>
 
     <details class="debug">
       <summary>Ver texto extraído del PDF (para depurar patrones)</summary>
@@ -164,8 +183,14 @@ var CONFIG={
     /\([A-Z]\d{2}(?:\.\d+)?\)\s*([A-ZÁÉÍÓÚÑ][^;\n]+)/,
     /(?:Hip[oó]tesis\s+diagn[oó]stica|Diagn[oó]stico)\s*:?\s*([^\n]{4,120})/i
   ],
-  // Especialidad de destino: campo "Unidad" o "CEX - <esp>"
-  especialidad:[/Unidad\s+([A-Za-zÁÉÍÓÚÑáéíóúñ]+)/,/CEX\s*-\s*([A-Za-zÁÉÍÓÚÑáéíóúñ]+)/]
+  // Especialidad de destino: campo "Unidad" o "CEX - <esp>".
+  // Captura hasta 3 palabras (multi-palabra: "Neurología Infantil", "Cirugía Adulto"),
+  // deteniéndose en el siguiente rótulo del formulario.
+  especialidad:[
+    /Unidad\s+([A-Za-zÁÉÍÓÚÑáéíóúñ]+(?:\s+[A-Za-zÁÉÍÓÚÑáéíóúñ]+){0,2}?)\s+(?:Tel\b|Correo|N[uú]mero|Servicio|Instrumentos|Firma)/i,
+    /CEX\s*-\s*([A-Za-zÁÉÍÓÚÑáéíóúñ]+(?:\s+[A-Za-zÁÉÍÓÚÑáéíóúñ]+){0,2}?)\s+Unidad\b/i,
+    /Unidad\s+([A-Za-zÁÉÍÓÚÑáéíóúñ]+)/
+  ]
 };
 
 function calcularDV(c){var s=0,m=2,i,d;for(i=c.length-1;i>=0;i--){d=parseInt(c.charAt(i),10);if(isNaN(d))return null;s+=d*m;m=(m===7)?2:m+1;}var r=11-(s%11);if(r===11)return"0";if(r===10)return"K";return String(r);}
@@ -243,6 +268,15 @@ function copiarFormato(){var html=correoHTML(),texto=correoTexto();if(navigator.
 function copiarSeleccion(){var prev=document.getElementById("previa"),rg=document.createRange();rg.selectNodeContents(prev);var sel=window.getSelection();sel.removeAllRanges();sel.addRange(rg);try{document.execCommand("copy");aviso("\u2713 Correo copiado \u2014 p\u00e9galo en tu correo");}catch(e){aviso("No se pudo copiar autom\u00e1ticamente");}sel.removeAllRanges();}
 function copiarTexto(){if(navigator.clipboard)navigator.clipboard.writeText(correoTexto()).then(function(){aviso("\u2713 Texto copiado");});}
 
+/* ===== Envío: destinatarios, asunto, Gmail ===== */
+var DESTINATARIOS="Comle HFresia <comle.hfresia@gmail.com>, Cupos Prioridad HPM <cuposprioridadhpm@ssdr.gob.cl>, Carolina Vallejos Ampuero <jefesomehfresia@ssdr.gob.cl>, Prioridad Red HPM <prioridadredhpm@ssdr.gob.cl>";
+function asuntoBase(){var e=document.getElementById("especialidad").value.trim();return e?("Solicitud Hora Prioritaria para "+e):"Solicitud Hora Prioritaria";}
+function actualizarAsunto(){document.getElementById("asunto").value=asuntoBase();}
+function copiarDest(){if(navigator.clipboard)navigator.clipboard.writeText(DESTINATARIOS).then(function(){aviso("\u2713 Destinatarios copiados");});}
+function copiarAsunto(){if(navigator.clipboard)navigator.clipboard.writeText(document.getElementById("asunto").value.trim()).then(function(){aviso("\u2713 Asunto copiado");});}
+function gmailURL(){return "https://mail.google.com/mail/?view=cm&fs=1&to="+encodeURIComponent(DESTINATARIOS)+"&su="+encodeURIComponent(document.getElementById("asunto").value.trim());}
+function abrirGmail(){var w=window.open(gmailURL(),"_blank");if(!w){aviso("Permite las ventanas emergentes para abrir Gmail");return;}copiarFormato();aviso("\u2713 Correo copiado \u2014 en Gmail pega con Ctrl+V");}
+
 /* ===== Procesar texto extraído (común a todas las vías) ===== */
 var rawAcum=[];
 function manejarTexto(texto,nombreArchivo,limpiarInicial){
@@ -253,6 +287,7 @@ function manejarTexto(texto,nombreArchivo,limpiarInicial){
   nuevoPaciente(datos);
   var espG=document.getElementById("especialidad");if(!espG.value.trim()&&datos.esp)espG.value=datos.esp;
   var org=document.getElementById("origen");if(datos.origen)org.value=datos.origen;
+  actualizarAsunto();
   render();
 }
 
@@ -283,18 +318,22 @@ function procesarHash(){
     var d=parsearSIC(t);nuevoPaciente(d);
     var espG=document.getElementById("especialidad");if(!espG.value.trim()&&d.esp)espG.value=d.esp;
     var org=document.getElementById("origen");if(d.origen)org.value=d.origen;
+    actualizarAsunto();
     render();aviso("\u2713 SIC capturado desde SIDRA \u2014 revisa los campos");
   }).catch(function(e){aviso("No pude procesar el PDF: "+e);});
 }
 
 /* ===== Generador de bookmarklet ===== */
 function construirBookmarklet(appurl){
-  var cuerpo="(function(){var u=location.href,p=null;"+
-    "if(/^blob:/.test(u)||/\\.pdf($|\\?)/i.test(u)){p=u;}"+
-    "else{var el=document.querySelector('embed[type=\"application/pdf\"],iframe[src^=\"blob:\"],object[type=\"application/pdf\"],iframe[src*=\".pdf\"]');if(el)p=el.src||el.data;}"+
-    "if(!p){alert('No encontr\\u00e9 un PDF abierto en esta p\\u00e1gina.');return;}"+
-    "fetch(p).then(function(r){return r.blob();}).then(function(b){var fr=new FileReader();fr.onload=function(){var d=String(fr.result),c=d.indexOf(',');var base=d.slice(c+1);var w=window.open('"+appurl+"#pdf='+encodeURIComponent(base));if(!w)alert('Permite las ventanas emergentes.');};fr.readAsDataURL(b);}).catch(function(e){alert('No pude leer el PDF: '+e);});})();";
-  return "javascript:"+cuerpo;
+  var c="(function(){"+
+    "function g(d){try{var u=d.location.href;if(/^blob:/.test(u)||/\\.pdf($|\\?)/i.test(u))return u;"+
+    "var el=d.querySelector('embed[type=\"application/pdf\"],object[type=\"application/pdf\"],iframe[src^=\"blob:\"],iframe[src*=\".pdf\"],embed[src^=\"blob:\"]');"+
+    "if(el)return el.src||el.data;var f=d.querySelectorAll('iframe,frame');for(var i=0;i<f.length;i++){var r=g(f[i].contentDocument);if(r)return r;}}catch(e){}return null;}"+
+    "var p=g(document);"+
+    "if(!p){alert('No encontr\\u00e9 un PDF en esta pesta\\u00f1a. Si el SIC se abri\\u00f3 en otra pesta\\u00f1a, haz clic en el marcador en ESA pesta\\u00f1a; si es un visor de PDF puro, usa el modo arrastrar en la app.');return;}"+
+    "fetch(p).then(function(r){return r.blob();}).then(function(b){var fr=new FileReader();fr.onload=function(){var d=String(fr.result),c=d.indexOf(',');if(!window.open('"+appurl+"#pdf='+encodeURIComponent(d.slice(c+1))))alert('Permite las ventanas emergentes.');};fr.readAsDataURL(b);}).catch(function(e){alert('No pude leer el PDF: '+e);});"+
+    "})();";
+  return "javascript:"+c;
 }
 function actualizarBM(){
   var url=document.getElementById("appurl").value.trim(),bm=document.getElementById("bm");
@@ -318,9 +357,15 @@ document.getElementById("agregar").addEventListener("click",function(){nuevoPaci
 document.getElementById("pacientes").addEventListener("click",function(e){var q=e.target.getAttribute("data-q");if(q){if(document.querySelectorAll(".paciente").length<=1){aviso("Debe quedar al menos un paciente");return;}var bl=e.target.closest(".paciente");bl.parentNode.removeChild(bl);render();}});
 document.getElementById("copiar").addEventListener("click",copiarFormato);
 document.getElementById("copiarTxt").addEventListener("click",copiarTexto);
+document.getElementById("gmail").addEventListener("click",abrirGmail);
+document.getElementById("copyDest").addEventListener("click",copiarDest);
+document.getElementById("copyAsunto").addEventListener("click",copiarAsunto);
+document.getElementById("especialidad").addEventListener("input",actualizarAsunto);
 
 nuevoPaciente({});
 render();
+actualizarAsunto();
+actualizarBM(); // el bookmarklet queda activo con la URL precargada
 procesarHash(); // si llega un PDF desde el bookmarklet, procesarlo
 </script>
 </body>
