@@ -274,7 +274,8 @@ function asuntoBase(){var e=document.getElementById("especialidad").value.trim()
 function actualizarAsunto(){document.getElementById("asunto").value=asuntoBase();}
 function copiarDest(){if(navigator.clipboard)navigator.clipboard.writeText(DESTINATARIOS).then(function(){aviso("\u2713 Destinatarios copiados");});}
 function copiarAsunto(){if(navigator.clipboard)navigator.clipboard.writeText(document.getElementById("asunto").value.trim()).then(function(){aviso("\u2713 Asunto copiado");});}
-function gmailURL(){return "https://mail.google.com/mail/?view=cm&fs=1&to="+encodeURIComponent(DESTINATARIOS)+"&su="+encodeURIComponent(document.getElementById("asunto").value.trim());}
+var GMAIL_CUENTA="contraloriamedica.hf@gmail.com";
+function gmailURL(){return "https://mail.google.com/mail/?view=cm&fs=1&authuser="+encodeURIComponent(GMAIL_CUENTA)+"&to="+encodeURIComponent(DESTINATARIOS)+"&su="+encodeURIComponent(document.getElementById("asunto").value.trim());}
 function abrirGmail(){var w=window.open(gmailURL(),"_blank");if(!w){aviso("Permite las ventanas emergentes para abrir Gmail");return;}copiarFormato();aviso("\u2713 Correo copiado \u2014 en Gmail pega con Ctrl+V");}
 
 /* ===== Procesar texto extraído (común a todas las vías) ===== */
