@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Derivación prioritaria · Lectura local de SIC</title>
+<style>
+  :root{
+    --purpura:#5B2C6F;--purpura-osc:#4A2159;--fila:#DDE3EF;--link:#2E5AAC;
+    --tinta:#1c2230;--gris:#5b6472;--linea:#e3e6ec;--panel:#fff;--fondo:#f2f3f7;
+    --ok:#1f7a4d;--alerta:#b0640a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--fondo);color:var(--tinta);
+    font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.45}
+  header.top{background:var(--purpura);color:#fff;padding:16px 22px;
+    display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+  header.top h1{font-size:17px;margin:0;font-weight:600}
+  header.top span{font-size:12.5px;color:#e6dcee}
+  .local{margin-left:auto;font-size:12px;background:#3f8d5f;color:#fff;
+    padding:3px 9px;border-radius:20px;font-weight:600}
+  .wrap{display:grid;grid-template-columns:minmax(320px,470px) 1fr;gap:20px;
+    padding:20px;max-width:1260px;margin:0 auto}
+  @media(max-width:900px){.wrap{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--linea);border-radius:10px;padding:18px}
+  .panel h2{font-size:12px;text-transform:uppercase;letter-spacing:.7px;
+    color:var(--gris);margin:0 0 14px;font-weight:700}
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--gris);margin:0 0 4px}
+  input,textarea{width:100%;font:inherit;font-size:14px;padding:8px 10px;
+    border:1px solid #cdd2db;border-radius:7px;background:#fff;color:var(--tinta)}
+  input:focus,textarea:focus{outline:2px solid var(--purpura);border-color:var(--purpura)}
+  textarea{resize:vertical;min-height:44px}
+  .campo{margin-bottom:12px}
+  .row2{display:grid;grid-template-columns:1fr 120px;gap:10px}
+  .run-estado{font-size:12px;margin-top:4px;min-height:16px;font-weight:600}
+  .run-ok{color:var(--ok)} .run-mal{color:var(--alerta)}
+
+  .drop{border:2px dashed #b9a6c7;border-radius:10px;padding:20px;text-align:center;
+    background:#faf7fc;cursor:pointer;transition:.15s;margin-bottom:14px}
+  .drop.hover{background:#f2e9f7;border-color:var(--purpura)}
+  .drop b{color:var(--purpura);font-size:14px} .drop p{margin:6px 0 0;font-size:12.5px;color:var(--gris)}
+  #file{display:none}
+
+  .sidra{background:#f4eefa;border:1px solid #e0d0ec;border-radius:10px;padding:14px;margin-bottom:16px}
+  .sidra h3{margin:0 0 8px;font-size:12.5px;color:var(--purpura);font-weight:700}
+  .sidra p{font-size:12.5px;color:var(--gris);margin:0 0 10px}
+  .bm{display:inline-block;background:var(--purpura);color:#fff;text-decoration:none;
+    padding:8px 16px;border-radius:8px;font-weight:600;font-size:13.5px;cursor:grab}
+  .bm.off{background:#c4b3d0;pointer-events:none;cursor:default}
+  .bm-nota{font-size:11.5px;color:var(--gris);margin-top:8px}
+
+  .paciente{border:1px solid var(--linea);border-radius:9px;padding:14px;margin-bottom:12px;
+    position:relative;background:#fbfbfd}
+  .paciente .cab{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .paciente .cab b{font-size:12.5px;color:var(--purpura)}
+  .quitar{background:none;border:none;color:#a03434;font-size:12.5px;cursor:pointer;font-weight:600;padding:2px 4px}
+  .quitar:hover{text-decoration:underline}
+
+  .btn{font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;border-radius:7px;padding:9px 14px;border:1px solid transparent}
+  .btn-sec{background:#fff;border-color:#cdd2db;color:var(--purpura);width:100%}
+  .btn-sec:hover{background:#f6f2f9}
+  .acciones{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .btn-pri{background:var(--purpura);color:#fff;flex:1}
+  .btn-pri:hover{background:var(--purpura-osc)}
+  .btn-txt{background:#eef0f5;color:var(--tinta)}
+  .btn-txt:hover{background:#e4e7ee}
+  .aviso{font-size:12.5px;color:var(--ok);font-weight:600;min-height:18px;margin-top:8px}
+
+  .previa{background:#fff;border:1px solid var(--linea);border-radius:6px;padding:22px;
+    font-family:Calibri,"Segoe UI",Arial,sans-serif;font-size:15px;color:#222}
+  .previa p{margin:0 0 14px}
+  table.sic{border-collapse:separate;border-spacing:2px;width:100%;margin:6px 0 16px;font-size:13.5px}
+  table.sic th{background:var(--purpura);color:#fff;font-weight:700;text-align:center;padding:9px 8px;line-height:1.25}
+  table.sic td{background:var(--fila);text-align:center;padding:9px 8px;color:#1c2230}
+  .enlace{color:var(--link);text-decoration:underline}
+  .hint{font-size:12px;color:var(--gris);margin:2px 0 0}
+
+  details.debug{margin-top:16px;font-size:13px}
+  details.debug summary{cursor:pointer;color:var(--gris);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.6px}
+  .raw{white-space:pre-wrap;background:#0f1420;color:#cfe3d2;padding:12px;border-radius:8px;
+    font-family:"SF Mono",Consolas,monospace;font-size:12px;max-height:280px;overflow:auto;margin-top:10px}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Derivación prioritaria · Lectura local de SIC</h1>
+  <span>Captura el PDF abierto en SIDRA o arrástralo</span>
+  <span class="local">100% local · no sale de tu equipo</span>
+</header>
+
+<div class="wrap">
+  <div class="panel">
+    <h2>1 · Cargar interconsulta</h2>
+
+    <div class="sidra">
+      <h3>Captura directa desde SIDRA (bookmarklet)</h3>
+      <p>Pega abajo la URL donde publicaste esta app; luego arrastra el botón a tu barra de
+      marcadores. Con el SIC abierto en SIDRA, haz clic en ese marcador y el PDF se cargará aquí solo.</p>
+      <div class="campo">
+        <label for="appurl">URL de esta app (GitHub Pages)</label>
+        <input id="appurl" placeholder="https://tu-usuario.github.io/derivacion-local.html">
+      </div>
+      <a class="bm off" id="bm" href="#" draggable="true">⬇ Capturar SIC → arrástrame</a>
+      <div class="bm-nota">El PDF viaja por el fragmento <b>#</b> de la URL: nunca se envía a ningún servidor.</div>
+    </div>
+
+    <div class="drop" id="drop">
+      <b>o arrastra aquí el PDF del SIC</b>
+      <p>haz clic para elegirlo · puedes soltar varios a la vez</p>
+    </div>
+    <input type="file" id="file" accept="application/pdf" multiple>
+
+    <h2 style="margin-top:6px">2 · Datos del correo</h2>
+    <div class="campo"><label for="origen">Origen / Derivación</label>
+      <input id="origen" value="Hospital de Fresia"></div>
+    <div class="campo"><label for="especialidad">Especialidad solicitada (por defecto)</label>
+      <input id="especialidad" value=""></div>
+
+    <div id="pacientes"></div>
+    <button class="btn btn-sec" id="agregar">+ Agregar paciente manual</button>
+
+    <div class="acciones">
+      <button class="btn btn-pri" id="copiar">Copiar correo con formato</button>
+      <button class="btn btn-txt" id="copiarTxt">Copiar solo texto</button>
+    </div>
+    <div class="aviso" id="aviso"></div>
+
+    <details class="debug">
+      <summary>Ver texto extraído del PDF (para depurar patrones)</summary>
+      <div class="raw" id="raw">Aún no cargas ningún PDF.</div>
+    </details>
+  </div>
+
+  <div class="panel">
+    <h2>Vista previa del correo</h2>
+    <div class="previa" id="previa"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+"use strict";
+if(window.pdfjsLib){
+  pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+}
+
+/* ===== CONFIG · patrones de extracción =====
+   Calibrados contra el SIC real de SIDRA (Hospital de Fresia).
+   Si algún día cambia el formato, ajústalos usando el panel
+   "Ver texto extraído". ===== */
+var CONFIG={
+  // Nombre: bloque de pie "DATOS DE PACIENTE" -> <ficha> <nombre> <run> DATOS DE PACIENTE
+  nombre:[
+    /\d{6,}\s+([^\d]+?)\s+\d{1,2}\.\d{3}\.\d{3}-[\dkK]\s+DATOS\s+DE\s+PACIENTE/i,
+    /([A-ZÁÉÍÓÚÑ()][A-ZÁÉÍÓÚÑ() ]{6,60})\s+\d{1,2}\.\d{3}\.\d{3}-[\dkK]/
+  ],
+  // RUN del paciente: primer RUN con puntos y guion del documento
+  run:[/(\d{1,2}\.\d{3}\.\d{3}-[\dkK])/i],
+  edad:[/(\d{1,3})\s*años/i],
+  fechaNac:[/(\d{1,2}-\d{1,2}-\d{4})/],
+  // Diagnóstico: ancla en el código CIE-10 "(H43.1) ... ; <dx> - Diagnóstico"
+  diagPref:[/\([A-Z]\d{2}(?:\.\d+)?\)\s*[^;]*;\s*([^-]+?)\s*-\s*Diagn[oó]stico/i],
+  diagAlt:[
+    /\([A-Z]\d{2}(?:\.\d+)?\)\s*([A-ZÁÉÍÓÚÑ][^;\n]+)/,
+    /(?:Hip[oó]tesis\s+diagn[oó]stica|Diagn[oó]stico)\s*:?\s*([^\n]{4,120})/i
+  ],
+  // Especialidad de destino: campo "Unidad" o "CEX - <esp>"
+  especialidad:[/Unidad\s+([A-Za-zÁÉÍÓÚÑáéíóúñ]+)/,/CEX\s*-\s*([A-Za-zÁÉÍÓÚÑáéíóúñ]+)/]
+};
+
+function calcularDV(c){var s=0,m=2,i,d;for(i=c.length-1;i>=0;i--){d=parseInt(c.charAt(i),10);if(isNaN(d))return null;s+=d*m;m=(m===7)?2:m+1;}var r=11-(s%11);if(r===11)return"0";if(r===10)return"K";return String(r);}
+function validarRun(v){var l=(v||"").replace(/[^0-9kK]/g,"").toUpperCase();if(l.length<2)return{estado:"vacio"};var c=l.slice(0,-1),dv=l.slice(-1),e=calcularDV(c);if(e===null)return{estado:"vacio"};return{estado:(dv===e)?"ok":"mal",esperado:e,formateado:c.replace(/\B(?=(\d{3})+(?!\d))/g,".")+"-"+dv};}
+function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function limpiar(s){return(s||"").replace(/\s+/g," ").trim();}
+
+/* ===== Extracción de texto ===== */
+function extraerTextoDeBytes(bytes){
+  return pdfjsLib.getDocument({data:bytes}).promise.then(function(pdf){
+    var p=[],i;for(i=1;i<=pdf.numPages;i++)p.push(pdf.getPage(i));return Promise.all(p);
+  }).then(function(pgs){return Promise.all(pgs.map(function(p){return p.getTextContent();}));})
+   .then(function(cs){return cs.map(function(c){return c.items.map(function(it){return it.str;}).join(" ");}).join("\n");});
+}
+function extraerTexto(file){
+  return new Promise(function(res,rej){
+    var fr=new FileReader();
+    fr.onload=function(){extraerTextoDeBytes(new Uint8Array(fr.result)).then(res,rej);};
+    fr.onerror=rej;fr.readAsArrayBuffer(file);
+  });
+}
+
+function buscar(t,ps){var i,m;for(i=0;i<ps.length;i++){m=t.match(ps[i]);if(m&&m[1])return limpiar(m[1]);}return"";}
+function tituloCase(s){return (s||"").toLowerCase().replace(/(^|\s)([a-záéíóúñ])/g,function(m,p,c){return p+c.toUpperCase();});}
+function limpiarNombre(s){return tituloCase((s||"").replace(/\([^)]*\)/g," ").replace(/\s+/g," ").trim());}
+function edadDesdeFecha(f){var m=f.match(/([0-9]{1,2})[\/\-\.]([0-9]{1,2})[\/\-\.]([0-9]{2,4})/);if(!m)return"";var a=parseInt(m[3],10);if(a<100)a+=(a<30?2000:1900);var n=new Date(a,parseInt(m[2],10)-1,parseInt(m[1],10)),h=new Date(),e=h.getFullYear()-n.getFullYear(),md=h.getMonth()-n.getMonth();if(md<0||(md===0&&h.getDate()<n.getDate()))e--;return(e>0&&e<130)?String(e):"";}
+function parsearSIC(t){
+  var edad=buscar(t,CONFIG.edad);if(!edad){var f=buscar(t,CONFIG.fechaNac);if(f)edad=edadDesdeFecha(f);}
+  var diag=buscar(t,CONFIG.diagPref)||buscar(t,CONFIG.diagAlt);
+  return{nombre:limpiarNombre(buscar(t,CONFIG.nombre)),run:(buscar(t,CONFIG.run)||"").replace(/[^0-9kK]/g,""),
+    edad:edad,motivo:diag,razon:diag,esp:tituloCase(buscar(t,CONFIG.especialidad)),origen:""};
+}
+
+/* ===== Pacientes ===== */
+var contador=0;
+function nuevoPaciente(pre){
+  pre=pre||{};contador++;var id=contador,div=document.createElement("div");
+  div.className="paciente";div.setAttribute("data-id",id);
+  div.innerHTML='<div class="cab"><b>Paciente '+id+'</b><button class="quitar" data-q="'+id+'">Quitar</button></div>'+
+    '<div class="campo"><label>Nombre y apellido</label><input class="f-nombre" value="'+esc(pre.nombre||"")+'"></div>'+
+    '<div class="row2"><div class="campo"><label>RUN (con DV, sin guion)</label>'+
+    '<input class="f-run" inputmode="numeric" value="'+esc(pre.run||"")+'"><div class="run-estado"></div></div>'+
+    '<div class="campo"><label>Edad</label><input class="f-edad" inputmode="numeric" value="'+esc(pre.edad||"")+'"></div></div>'+
+    '<div class="campo"><label>Motivo clínico (para el saludo)</label><input class="f-motivo" value="'+esc(pre.motivo||"")+'">'+
+    '<p class="hint">Ej: estenosis mitral severa sintomática</p></div>'+
+    '<div class="campo"><label>Razón SIC (celda de la tabla)</label><textarea class="f-razon">'+esc(pre.razon||"")+'</textarea></div>'+
+    '<div class="campo"><label>Especialidad (vacío = usa la general)</label><input class="f-esp" value="'+esc(pre.esp||"")+'"></div>';
+  document.getElementById("pacientes").appendChild(div);return div;
+}
+function recolectar(){var o=[],b=document.querySelectorAll(".paciente"),i;for(i=0;i<b.length;i++){o.push({nombre:b[i].querySelector(".f-nombre").value.trim(),run:b[i].querySelector(".f-run").value.trim(),edad:b[i].querySelector(".f-edad").value.trim(),motivo:b[i].querySelector(".f-motivo").value.trim(),razon:b[i].querySelector(".f-razon").value.trim(),esp:b[i].querySelector(".f-esp").value.trim()});}return o;}
+
+/* ===== Correo ===== */
+function tablaHTML(lista,origen,espG){
+  var th='style="background:#5B2C6F;color:#fff;font-weight:bold;text-align:center;padding:9px 8px;font-family:Calibri,Arial,sans-serif;font-size:13px;"';
+  var td='style="background:#DDE3EF;text-align:center;padding:9px 8px;color:#1c2230;font-family:Calibri,Arial,sans-serif;font-size:13px;"';
+  var tdI='style="background:#DDE3EF;text-align:left;padding:9px 8px;color:#1c2230;font-family:Calibri,Arial,sans-serif;font-size:13px;"';
+  var i,p,run,filas="";
+  var html='<table cellspacing="2" cellpadding="0" style="border-collapse:separate;border-spacing:2px;"><tr>'+
+    '<th '+th+'>Nombre y Apellido<br>del Paciente</th><th '+th+'>RUN (con DV, sin guion)</th>'+
+    '<th '+th+'>Origen / Derivaci\u00f3n</th><th '+th+'>Raz\u00f3n SIC</th><th '+th+'>Especialidad Solicitada</th></tr>';
+  for(i=0;i<lista.length;i++){p=lista[i];run=(p.run||"").replace(/[^0-9kK]/g,"");
+    filas+='<tr><td '+tdI+'>'+esc(p.nombre)+'</td><td '+td+'>'+esc(run)+'</td>'+
+    '<td '+td+'><span style="color:#2E5AAC;text-decoration:underline;">'+esc(origen)+'</span></td>'+
+    '<td '+tdI+'>'+esc(p.razon)+'</td><td '+td+'>'+esc(p.esp||espG)+'</td></tr>';}
+  return html+filas+'</table>';
+}
+function saludo(lista){if(lista.length===1){var p=lista[0],e=p.edad?("paciente de "+esc(p.edad)+" a\u00f1os"):"paciente",m=p.motivo?(" por "+esc(p.motivo.charAt(0).toLowerCase()+p.motivo.slice(1))):"";return"Junto con saludar, solicito por favor hora prioritaria para "+e+m+".";}return"Junto con saludar, solicito por favor hora prioritaria para los siguientes pacientes.";}
+function correoHTML(){var origen=document.getElementById("origen").value.trim(),espG=document.getElementById("especialidad").value.trim(),lista=recolectar(),st='font-family:Calibri,"Segoe UI",Arial,sans-serif;font-size:15px;color:#222;';return'<div style="'+st+'"><p style="margin:0 0 14px;">Estimado/a Doctor/a:</p><p style="margin:0 0 14px;">'+saludo(lista)+'</p>'+tablaHTML(lista,origen,espG)+'<p style="margin:16px 0 4px;">Adjunto SIC.</p><p style="margin:0;">Quedo atento. Muchas gracias.</p></div>';}
+function correoTexto(){var origen=document.getElementById("origen").value.trim(),espG=document.getElementById("especialidad").value.trim(),lista=recolectar(),t="Estimado/a Doctor/a:\n\n"+saludo(lista).replace(/<[^>]+>/g,"")+"\n\n",i,p,run;for(i=0;i<lista.length;i++){p=lista[i];run=(p.run||"").replace(/[^0-9kK]/g,"");t+="- "+p.nombre+" | RUN "+run+" | "+origen+" | "+p.razon+" | "+(p.esp||espG)+"\n";}return t+"\nAdjunto SIC.\nQuedo atento. Muchas gracias.";}
+
+function render(){document.getElementById("previa").innerHTML=correoHTML();var b=document.querySelectorAll(".paciente"),i;for(i=0;i<b.length;i++){var inp=b[i].querySelector(".f-run"),est=b[i].querySelector(".run-estado"),r=validarRun(inp.value);if(r.estado==="ok"){est.className="run-estado run-ok";est.textContent="\u2713 RUN v\u00e1lido ("+r.formateado+")";}else if(r.estado==="mal"){est.className="run-estado run-mal";est.textContent="\u26a0 DV no coincide (esperado: "+r.esperado+")";}else{est.className="run-estado";est.textContent="";}}}
+
+function aviso(t){var a=document.getElementById("aviso");a.textContent=t;setTimeout(function(){a.textContent="";},2800);}
+function copiarFormato(){var html=correoHTML(),texto=correoTexto();if(navigator.clipboard&&window.ClipboardItem){var it=new ClipboardItem({"text/html":new Blob([html],{type:"text/html"}),"text/plain":new Blob([texto],{type:"text/plain"})});navigator.clipboard.write([it]).then(function(){aviso("\u2713 Correo copiado \u2014 p\u00e9galo en tu correo");},copiarSeleccion);}else copiarSeleccion();}
+function copiarSeleccion(){var prev=document.getElementById("previa"),rg=document.createRange();rg.selectNodeContents(prev);var sel=window.getSelection();sel.removeAllRanges();sel.addRange(rg);try{document.execCommand("copy");aviso("\u2713 Correo copiado \u2014 p\u00e9galo en tu correo");}catch(e){aviso("No se pudo copiar autom\u00e1ticamente");}sel.removeAllRanges();}
+function copiarTexto(){if(navigator.clipboard)navigator.clipboard.writeText(correoTexto()).then(function(){aviso("\u2713 Texto copiado");});}
+
+/* ===== Procesar texto extraído (común a todas las vías) ===== */
+var rawAcum=[];
+function manejarTexto(texto,nombreArchivo,limpiarInicial){
+  if(limpiarInicial){var b=document.querySelectorAll(".paciente");if(b.length===1&&!b[0].querySelector(".f-nombre").value.trim())b[0].parentNode.removeChild(b[0]);}
+  rawAcum.push("=== "+nombreArchivo+" ===\n"+texto);
+  document.getElementById("raw").textContent=rawAcum.join("\n\n");
+  var datos=parsearSIC(texto);
+  nuevoPaciente(datos);
+  var espG=document.getElementById("especialidad");if(!espG.value.trim()&&datos.esp)espG.value=datos.esp;
+  var org=document.getElementById("origen");if(datos.origen)org.value=datos.origen;
+  render();
+}
+
+/* ===== Carga por archivo (drag/drop / picker) ===== */
+function cargarArchivos(files){
+  var arr=Array.prototype.slice.call(files).filter(function(f){return/pdf$/i.test(f.type)||/\.pdf$/i.test(f.name);});
+  if(!arr.length)return;
+  var primero=true;
+  arr.reduce(function(cad,file){return cad.then(function(){return extraerTexto(file).then(function(t){manejarTexto(t,file.name,primero);primero=false;}).catch(function(e){manejarTexto("(ERROR al leer: "+e+")",file.name,primero);primero=false;});});},Promise.resolve()).then(function(){aviso("\u2713 "+arr.length+" PDF le\u00eddo(s) \u2014 revisa los campos");});
+}
+
+/* ===== Carga por bookmarklet (PDF en el hash) ===== */
+function procesarHash(){
+  var h=window.location.hash||"";
+  var idx=h.indexOf("pdf=");
+  if(idx<0)return;
+  var b64=decodeURIComponent(h.slice(idx+4));
+  // Limpiar el hash de inmediato: los datos no quedan en la barra ni en el historial
+  try{history.replaceState(null,"",window.location.pathname+window.location.search);}catch(e){}
+  var bin,bytes,i;
+  try{bin=atob(b64);bytes=new Uint8Array(bin.length);for(i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);}
+  catch(e){aviso("No pude leer el PDF recibido desde SIDRA");return;}
+  extraerTextoDeBytes(bytes).then(function(t){
+    var b=document.querySelectorAll(".paciente");
+    if(b.length===1&&!b[0].querySelector(".f-nombre").value.trim())b[0].parentNode.removeChild(b[0]);
+    rawAcum.push("=== SIC capturado desde SIDRA ===\n"+t);
+    document.getElementById("raw").textContent=rawAcum.join("\n\n");
+    var d=parsearSIC(t);nuevoPaciente(d);
+    var espG=document.getElementById("especialidad");if(!espG.value.trim()&&d.esp)espG.value=d.esp;
+    var org=document.getElementById("origen");if(d.origen)org.value=d.origen;
+    render();aviso("\u2713 SIC capturado desde SIDRA \u2014 revisa los campos");
+  }).catch(function(e){aviso("No pude procesar el PDF: "+e);});
+}
+
+/* ===== Generador de bookmarklet ===== */
+function construirBookmarklet(appurl){
+  var cuerpo="(function(){var u=location.href,p=null;"+
+    "if(/^blob:/.test(u)||/\\.pdf($|\\?)/i.test(u)){p=u;}"+
+    "else{var el=document.querySelector('embed[type=\"application/pdf\"],iframe[src^=\"blob:\"],object[type=\"application/pdf\"],iframe[src*=\".pdf\"]');if(el)p=el.src||el.data;}"+
+    "if(!p){alert('No encontr\\u00e9 un PDF abierto en esta p\\u00e1gina.');return;}"+
+    "fetch(p).then(function(r){return r.blob();}).then(function(b){var fr=new FileReader();fr.onload=function(){var d=String(fr.result),c=d.indexOf(',');var base=d.slice(c+1);var w=window.open('"+appurl+"#pdf='+encodeURIComponent(base));if(!w)alert('Permite las ventanas emergentes.');};fr.readAsDataURL(b);}).catch(function(e){alert('No pude leer el PDF: '+e);});})();";
+  return "javascript:"+cuerpo;
+}
+function actualizarBM(){
+  var url=document.getElementById("appurl").value.trim(),bm=document.getElementById("bm");
+  if(/^https?:\/\//.test(url)){bm.href=construirBookmarklet(url);bm.classList.remove("off");}
+  else{bm.href="#";bm.classList.add("off");}
+}
+
+/* ===== Eventos ===== */
+var drop=document.getElementById("drop"),file=document.getElementById("file");
+drop.addEventListener("click",function(){file.click();});
+drop.addEventListener("dragover",function(e){e.preventDefault();drop.classList.add("hover");});
+drop.addEventListener("dragleave",function(){drop.classList.remove("hover");});
+drop.addEventListener("drop",function(e){e.preventDefault();drop.classList.remove("hover");cargarArchivos(e.dataTransfer.files);});
+file.addEventListener("change",function(e){cargarArchivos(e.target.files);});
+document.getElementById("appurl").addEventListener("input",actualizarBM);
+document.getElementById("bm").addEventListener("click",function(e){e.preventDefault();});
+document.getElementById("pacientes").addEventListener("input",render);
+document.getElementById("origen").addEventListener("input",render);
+document.getElementById("especialidad").addEventListener("input",render);
+document.getElementById("agregar").addEventListener("click",function(){nuevoPaciente();render();});
+document.getElementById("pacientes").addEventListener("click",function(e){var q=e.target.getAttribute("data-q");if(q){if(document.querySelectorAll(".paciente").length<=1){aviso("Debe quedar al menos un paciente");return;}var bl=e.target.closest(".paciente");bl.parentNode.removeChild(bl);render();}});
+document.getElementById("copiar").addEventListener("click",copiarFormato);
+document.getElementById("copiarTxt").addEventListener("click",copiarTexto);
+
+nuevoPaciente({});
+render();
+procesarHash(); // si llega un PDF desde el bookmarklet, procesarlo
+</script>
+</body>
+</html>
