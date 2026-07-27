@@ -50,6 +50,8 @@
   .bm-nota{font-size:11.5px;color:var(--gris);margin-top:8px}
   .sidra{margin-top:18px;margin-bottom:0}
   .url-edit summary{font-size:11.5px;color:var(--gris);cursor:pointer;margin-top:6px}
+  .cfg summary{cursor:pointer;font-weight:700;color:var(--purpura);font-size:12.5px}
+  .cfg[open] summary{margin-bottom:4px}
 
   .paciente{border:1px solid var(--linea);border-radius:9px;padding:14px;margin-bottom:12px;
     position:relative;background:#fbfbfd}
@@ -105,8 +107,6 @@
     <input type="file" id="file" accept="application/pdf" multiple>
 
     <h2 style="margin-top:6px">2 · Datos del correo</h2>
-    <div class="campo"><label for="origen">Origen / Derivación</label>
-      <input id="origen" value="Hospital de Fresia"></div>
     <div class="campo"><label for="especialidad">Especialidad solicitada (por defecto)</label>
       <input id="especialidad" value=""></div>
 
@@ -116,7 +116,7 @@
     <h2 style="margin-top:18px">3 · Envío</h2>
     <div class="campo">
       <label>Destinatarios <button type="button" class="mini" id="copyDest">copiar</button></label>
-      <textarea id="destinatarios" readonly>Comle HFresia &lt;comle.hfresia@gmail.com&gt;, Cupos Prioridad HPM &lt;cuposprioridadhpm@ssdr.gob.cl&gt;, Carolina Vallejos Ampuero &lt;jefesomehfresia@ssdr.gob.cl&gt;, Prioridad Red HPM &lt;prioridadredhpm@ssdr.gob.cl&gt;</textarea>
+      <textarea id="destinatarios">Comle HFresia &lt;comle.hfresia@gmail.com&gt;, Cupos Prioridad HPM &lt;cuposprioridadhpm@ssdr.gob.cl&gt;, Carolina Vallejos Ampuero &lt;jefesomehfresia@ssdr.gob.cl&gt;, Prioridad Red HPM &lt;prioridadredhpm@ssdr.gob.cl&gt;</textarea>
     </div>
     <div class="campo">
       <label>Asunto <button type="button" class="mini" id="copyAsunto">copiar</button></label>
@@ -130,18 +130,24 @@
     </div>
     <div class="aviso" id="aviso"></div>
 
+    <details class="sidra cfg" id="cfgDetails">
+      <summary>⚙ Configuración del centro · tu correo de origen y destinatarios</summary>
+      <p style="margin-top:10px">Se guarda en <b>este</b> equipo. Cada contralor configura lo suyo una vez; no afecta a los demás.</p>
+      <div class="campo"><label for="remitente">Correo de origen (tu Gmail remitente)</label>
+        <input id="remitente" value="contraloriamedica.hf@gmail.com"></div>
+      <div class="campo"><label for="origen">Centro / Origen de derivación</label>
+        <input id="origen" value="Hospital de Fresia"></div>
+      <div class="campo"><label for="appurl">URL de esta app (para el bookmarklet)</label>
+        <input id="appurl" value="https://diegovillavicenciodonoso.github.io/SICprioritarias/"></div>
+      <p class="bm-nota">Los destinatarios se editan arriba, en la sección 3 · Envío, y también quedan guardados.</p>
+      <button type="button" class="btn btn-sec" id="resetCfg" style="margin-top:6px">Restablecer valores por defecto</button>
+    </details>
+
     <div class="sidra">
       <h3>Configurar captura desde SIDRA · una sola vez</h3>
       <p>Arrastra el botón de abajo a tu barra de marcadores. Con el SIC abierto en SIDRA, haz clic en ese marcador y el PDF se cargará aquí solo.</p>
       <a class="bm off" id="bm" href="#" draggable="true">⬇ Capturar SIC → arrástrame</a>
       <div class="bm-nota">El PDF viaja por el fragmento <b>#</b> de la URL: nunca se envía a ningún servidor.</div>
-      <details class="url-edit">
-        <summary>Cambiar URL de la app</summary>
-        <div class="campo" style="margin-top:8px">
-          <label for="appurl">URL de esta app (GitHub Pages)</label>
-          <input id="appurl" value="https://diegovillavicenciodonoso.github.io/SICprioritarias/">
-        </div>
-      </details>
     </div>
 
     <details class="debug">
@@ -269,14 +275,30 @@ function copiarSeleccion(){var prev=document.getElementById("previa"),rg=documen
 function copiarTexto(){if(navigator.clipboard)navigator.clipboard.writeText(correoTexto()).then(function(){aviso("\u2713 Texto copiado");});}
 
 /* ===== Envío: destinatarios, asunto, Gmail ===== */
-var DESTINATARIOS="Comle HFresia <comle.hfresia@gmail.com>, Cupos Prioridad HPM <cuposprioridadhpm@ssdr.gob.cl>, Carolina Vallejos Ampuero <jefesomehfresia@ssdr.gob.cl>, Prioridad Red HPM <prioridadredhpm@ssdr.gob.cl>";
+/* ===== Configuración por centro (persistida en este equipo con localStorage) ===== */
+var DEFAULTS={
+  remitente:"contraloriamedica.hf@gmail.com",
+  destinatarios:"Comle HFresia <comle.hfresia@gmail.com>, Cupos Prioridad HPM <cuposprioridadhpm@ssdr.gob.cl>, Carolina Vallejos Ampuero <jefesomehfresia@ssdr.gob.cl>, Prioridad Red HPM <prioridadredhpm@ssdr.gob.cl>",
+  origen:"Hospital de Fresia",
+  appurl:"https://diegovillavicenciodonoso.github.io/SICprioritarias/"
+};
+var LS_KEY="sicprioritarias.config.v1";
+function val(id){var el=document.getElementById(id);return el?el.value.trim():"";}
+function setVal(id,v){var el=document.getElementById(id);if(el&&v!=null)el.value=v;}
+function leerConfig(){try{var r=localStorage.getItem(LS_KEY);return r?JSON.parse(r):null;}catch(e){return null;}}
+function guardarConfig(){try{localStorage.setItem(LS_KEY,JSON.stringify({remitente:val("remitente"),destinatarios:document.getElementById("destinatarios").value,origen:val("origen"),appurl:val("appurl")}));}catch(e){}}
+function aplicarConfig(c){c=c||{};setVal("remitente",c.remitente||DEFAULTS.remitente);setVal("destinatarios",c.destinatarios||DEFAULTS.destinatarios);setVal("origen",c.origen||DEFAULTS.origen);setVal("appurl",c.appurl||DEFAULTS.appurl);}
+function restablecerConfig(){try{localStorage.removeItem(LS_KEY);}catch(e){}aplicarConfig(DEFAULTS);actualizarBM();actualizarAsunto();render();aviso("\u2713 Configuraci\u00f3n restablecida a valores por defecto");}
+var pdfsAdjuntar=[]; // PDFs capturados desde el blob de SIDRA, para descargar al enviar
+function nombreArchivoPDF(nombre,run){var base=(nombre||"paciente").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9]+/g,"_").replace(/^_+|_+$/g,"");var r=(run||"").replace(/[^0-9kK]/g,"");return "SIC_"+base+(r?("_"+r):"")+".pdf";}
+function descargarPDF(bytes,nombre){try{var blob=new Blob([bytes],{type:"application/pdf"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download=nombre;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},4000);}catch(e){}}
+function descargarAdjuntos(){for(var i=0;i<pdfsAdjuntar.length;i++)descargarPDF(pdfsAdjuntar[i].bytes,pdfsAdjuntar[i].nombre);}
 function asuntoBase(){var e=document.getElementById("especialidad").value.trim();return e?("Solicitud Hora Prioritaria para "+e):"Solicitud Hora Prioritaria";}
 function actualizarAsunto(){document.getElementById("asunto").value=asuntoBase();}
-function copiarDest(){if(navigator.clipboard)navigator.clipboard.writeText(DESTINATARIOS).then(function(){aviso("\u2713 Destinatarios copiados");});}
+function copiarDest(){if(navigator.clipboard)navigator.clipboard.writeText(val("destinatarios")).then(function(){aviso("\u2713 Destinatarios copiados");});}
 function copiarAsunto(){if(navigator.clipboard)navigator.clipboard.writeText(document.getElementById("asunto").value.trim()).then(function(){aviso("\u2713 Asunto copiado");});}
-var GMAIL_CUENTA="contraloriamedica.hf@gmail.com";
-function gmailURL(){return "https://mail.google.com/mail/?view=cm&fs=1&authuser="+encodeURIComponent(GMAIL_CUENTA)+"&to="+encodeURIComponent(DESTINATARIOS)+"&su="+encodeURIComponent(document.getElementById("asunto").value.trim());}
-function abrirGmail(){var w=window.open(gmailURL(),"_blank");if(!w){aviso("Permite las ventanas emergentes para abrir Gmail");return;}copiarFormato();aviso("\u2713 Correo copiado \u2014 en Gmail pega con Ctrl+V");}
+function gmailURL(){return "https://mail.google.com/mail/?view=cm&fs=1&authuser="+encodeURIComponent(val("remitente"))+"&to="+encodeURIComponent(val("destinatarios"))+"&su="+encodeURIComponent(val("asunto"));}
+function abrirGmail(){var w=window.open(gmailURL(),"_blank");if(!w){aviso("Permite las ventanas emergentes para abrir Gmail");return;}copiarFormato();descargarAdjuntos();aviso(pdfsAdjuntar.length?("\u2713 Correo copiado y SIC descargado \u2014 en Gmail: Ctrl+V y arrastra el PDF"):"\u2713 Correo copiado \u2014 en Gmail pega con Ctrl+V");}
 
 /* ===== Procesar texto extraído (común a todas las vías) ===== */
 var rawAcum=[];
@@ -311,12 +333,14 @@ function procesarHash(){
   var bin,bytes,i;
   try{bin=atob(b64);bytes=new Uint8Array(bin.length);for(i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);}
   catch(e){aviso("No pude leer el PDF recibido desde SIDRA");return;}
+  var bytesAdj=bytes.slice(); // copia intacta para adjuntar (pdf.js puede detachar el original)
   extraerTextoDeBytes(bytes).then(function(t){
     var b=document.querySelectorAll(".paciente");
     if(b.length===1&&!b[0].querySelector(".f-nombre").value.trim())b[0].parentNode.removeChild(b[0]);
     rawAcum.push("=== SIC capturado desde SIDRA ===\n"+t);
     document.getElementById("raw").textContent=rawAcum.join("\n\n");
     var d=parsearSIC(t);nuevoPaciente(d);
+    pdfsAdjuntar.push({bytes:bytesAdj,nombre:nombreArchivoPDF(d.nombre,d.run)});
     var espG=document.getElementById("especialidad");if(!espG.value.trim()&&d.esp)espG.value=d.esp;
     var org=document.getElementById("origen");if(d.origen)org.value=d.origen;
     actualizarAsunto();
@@ -349,10 +373,10 @@ drop.addEventListener("dragover",function(e){e.preventDefault();drop.classList.a
 drop.addEventListener("dragleave",function(){drop.classList.remove("hover");});
 drop.addEventListener("drop",function(e){e.preventDefault();drop.classList.remove("hover");cargarArchivos(e.dataTransfer.files);});
 file.addEventListener("change",function(e){cargarArchivos(e.target.files);});
-document.getElementById("appurl").addEventListener("input",actualizarBM);
+document.getElementById("appurl").addEventListener("input",function(){actualizarBM();guardarConfig();});
 document.getElementById("bm").addEventListener("click",function(e){e.preventDefault();});
 document.getElementById("pacientes").addEventListener("input",render);
-document.getElementById("origen").addEventListener("input",render);
+document.getElementById("origen").addEventListener("input",function(){render();guardarConfig();});
 document.getElementById("especialidad").addEventListener("input",render);
 document.getElementById("agregar").addEventListener("click",function(){nuevoPaciente();render();});
 document.getElementById("pacientes").addEventListener("click",function(e){var q=e.target.getAttribute("data-q");if(q){if(document.querySelectorAll(".paciente").length<=1){aviso("Debe quedar al menos un paciente");return;}var bl=e.target.closest(".paciente");bl.parentNode.removeChild(bl);render();}});
@@ -362,11 +386,17 @@ document.getElementById("gmail").addEventListener("click",abrirGmail);
 document.getElementById("copyDest").addEventListener("click",copiarDest);
 document.getElementById("copyAsunto").addEventListener("click",copiarAsunto);
 document.getElementById("especialidad").addEventListener("input",actualizarAsunto);
+document.getElementById("remitente").addEventListener("input",guardarConfig);
+document.getElementById("destinatarios").addEventListener("input",guardarConfig);
+document.getElementById("resetCfg").addEventListener("click",restablecerConfig);
 
+var cfgGuardada=leerConfig();
+aplicarConfig(cfgGuardada);
 nuevoPaciente({});
 render();
 actualizarAsunto();
-actualizarBM(); // el bookmarklet queda activo con la URL precargada
+actualizarBM(); // el bookmarklet queda activo con la URL configurada
+if(!cfgGuardada){var cd=document.getElementById("cfgDetails");if(cd)cd.open=true;aviso("Primera vez: revisa tu correo de origen y destinatarios en \u2699 Configuraci\u00f3n (abajo)");}
 procesarHash(); // si llega un PDF desde el bookmarklet, procesarlo
 </script>
 </body>
